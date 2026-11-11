@@ -98,24 +98,68 @@ let blob=new Blob([document.getElementById("html").value],{type:"text/html"});
 let a=document.createElement("a");a.href=URL.createObjectURL(blob);
 a.download="my-website.html";a.click();URL.revokeObjectURL(a.href);
 }
+
 function runJS(){
-let output=[];
-try{
-let log=(...v)=>output.push(v.map(x=>typeof x==="object"?JSON.stringify(x):String(x)).join(" "));
-let code=document.getElementById("jsCode").value;
-let frame=document.createElement("iframe");
-frame.sandbox="allow-scripts";
-frame.style.display="none";document.body.appendChild(frame);
-frame.onload=()=>{};
-let script=frame.contentDocument.createElement("script");
-script.textContent="console.log=function(...x){parent.postMessage({utpalOutput:x.map(String)} ,'*')};try{"+code+"}catch(e){console.log('ERROR: '+e.message)}";
-frame.contentDocument.body.appendChild(script);
-let handler=e=>{if(e.data&&e.data.utpalOutput){output.push(e.data.utpalOutput.join(" "));document.getElementById("jsOutput").textContent=output.join("\n")||"No output";window.removeEventListener("message",handler);frame.remove()}};
-window.addEventListener("message",handler);
-setTimeout(()=>{frame.remove();window.removeEventListener("message",handler)},2000);
-document.getElementById("jsOutput").textContent="Running...";
-}catch(e){document.getElementById("jsOutput").textContent=e.message}
+  const code = document.getElementById("jsCode").value;
+  const output = document.getElementById("jsOutput");
+  output.textContent = "Running...";
+
+  const frame = document.createElement("iframe");
+  frame.setAttribute("sandbox", "allow-scripts");
+  frame.style.display = "none";
+
+  let finished = false;
+  const cleanup = () => {
+    window.removeEventListener("message", handler);
+    frame.remove();
+  };
+
+  const handler = (event) => {
+    if (event.source !== frame.contentWindow ||
+        !event.data ||
+        event.data.type !== "utpal-js-result") return;
+
+    finished = true;
+    output.textContent = event.data.output || "(কোনো Output নেই)";
+    cleanup();
+  };
+
+  window.addEventListener("message", handler);
+  document.body.appendChild(frame);
+
+  const safeCode = JSON.stringify(code);
+  frame.srcdoc = `<!doctype html><html><body><script>
+  (() => {
+    const code = ${safeCode};
+    const lines = [];
+    const fmt = x => {
+      try { return typeof x === "string" ? x : JSON.stringify(x); }
+      catch (_) { return String(x); }
+    };
+    console.log = (...args) => lines.push(args.map(fmt).join(" "));
+    console.info = console.log;
+    console.warn = (...args) => lines.push("WARNING: " + args.map(fmt).join(" "));
+    console.error = (...args) => lines.push("ERROR: " + args.map(fmt).join(" "));
+    try {
+      new Function(code)();
+    } catch (e) {
+      lines.push("ERROR: " + e.message);
+    }
+    parent.postMessage({
+      type: "utpal-js-result",
+      output: lines.join("\n")
+    }, "*");
+  })();
+  <\/script></body></html>`;
+
+  setTimeout(() => {
+    if (!finished) {
+      output.textContent = "সময়সীমা অতিক্রম করেছে। আবার চেষ্টা করুন।";
+      cleanup();
+    }
+  }, 3000);
 }
+
 function formatJSON(){
 try{let x=JSON.parse(document.getElementById("jsonInput").value);document.getElementById("jsonOutput").textContent=JSON.stringify(x,null,2)}
 catch(e){document.getElementById("jsonOutput").textContent="Invalid JSON: "+e.message}

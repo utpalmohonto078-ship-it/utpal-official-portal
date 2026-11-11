@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UTPAL Tools Studio</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#081426;color:#f4f7ff;font:16px Arial;line-height:1.6}
+header,main{max-width:1100px;margin:auto;padding:20px}
+header{background:#102c50;text-align:center}
+h1,h2{color:#f3cf72}
+nav{display:flex;flex-wrap:wrap;gap:8px;margin:15px 0}
+button{background:#d7ad4e;color:#101827;border:0;padding:10px 14px;border-radius:7px;font-weight:bold;cursor:pointer}
+textarea{width:100%;min-height:190px;background:#07101e;color:#dff4ff;border:1px solid #45617e;border-radius:8px;padding:12px;font:14px monospace}
+section{background:#10213a;padding:18px;border:1px solid #304967;border-radius:12px;margin:18px 0}
+iframe{width:100%;height:280px;background:white;border:0;border-radius:8px}
+input{padding:10px;width:100%;margin:5px 0}
+pre{white-space:pre-wrap;background:#07101e;padding:12px;border-radius:8px;overflow:auto}
+small{color:#b9c5d5}
+</style>
+</head>
+<body>
+<header>
+<h1>UTPAL TOOLS STUDIO</h1>
+<p>Browser-based Development & Productivity Tools</p>
+<small>প্রাথমিক সংস্করণ · নিরাপদ ব্রাউজারভিত্তিক টুল</small>
+</header>
+<main>
+<nav>
+<button onclick="go('web')">Website Builder</button>
+<button onclick="go('js')">JavaScript Playground</button>
+<button onclick="go('json')">JSON Tool</button>
+<button onclick="go('calc')">Calculator</button>
+<button onclick="go('words')">Word Counter</button>
+</nav>
+
+<section id="web">
+<h2>1. Website Builder</h2>
+<p>HTML লিখুন, Preview দেখুন এবং ফাইল ডাউনলোড করুন।</p>
+<textarea id="html"><!DOCTYPE html>
+<html>
+<head><title>My Website</title></head>
+<body style="font-family:Arial;text-align:center;padding:40px">
+<h1>আমার প্রথম ওয়েবসাইট</h1>
+<p>Created with UTPAL Tools Studio</p>
+<button onclick="alert('Hello!')">Click Me</button>
+</body>
+</html></textarea>
+<button onclick="preview()">Live Preview</button>
+<button onclick="downloadHTML()">Download HTML</button>
+<iframe id="preview" sandbox="allow-scripts"></iframe>
+</section>
+
+<section id="js">
+<h2>2. JavaScript Playground</h2>
+<p>কোড লিখুন এবং Run চাপুন। Output নিচে দেখাবে।</p>
+<textarea id="jsCode">console.log("Hello from UTPAL Tools!");
+let a = 25, b = 17;
+console.log("Result:", a + b);</textarea>
+<button onclick="runJS()">Run JavaScript</button>
+<pre id="jsOutput">Output এখানে আসবে।</pre>
+</section>
+
+<section id="json">
+<h2>3. JSON Formatter & Validator</h2>
+<textarea id="jsonInput">{"name":"Utpal Kumar Mohonto","project":"BANGLADESH BHASHA","version":"2.0.1"}</textarea>
+<button onclick="formatJSON()">Format & Validate</button>
+<pre id="jsonOutput">JSON result এখানে আসবে।</pre>
+</section>
+
+<section id="calc">
+<h2>4. Calculator</h2>
+<input id="expression" placeholder="উদাহরণ: (25+17)*3">
+<button onclick="calculate()">Calculate</button>
+<pre id="calcOutput">Result</pre>
+</section>
+
+<section id="words">
+<h2>5. Word Counter</h2>
+<textarea id="wordText" placeholder="আপনার লেখা এখানে দিন..." oninput="countWords()"></textarea>
+<pre id="wordOutput">শব্দ: 0 | অক্ষর: 0</pre>
+</section>
+
+<section>
+<h2>BANGLADESH BHASHA — ULTIMATE</h2>
+<p>নিজস্ব Programming Language, Compiler, Runtime ও VM-এর অনলাইন সংযোগ পরবর্তী উন্নয়ন পর্যায়ে যুক্ত হবে।</p>
+<a href="https://github.com/utpalmohonto078-ship-it/utpal-official-portal" style="color:#f3cf72">Official Portal Repository</a>
+</section>
+</main>
+<script>
+function go(id){document.getElementById(id).scrollIntoView({behavior:"smooth"})}
+function preview(){
+document.getElementById("preview").srcdoc=document.getElementById("html").value;
+}
+function downloadHTML(){
+let blob=new Blob([document.getElementById("html").value],{type:"text/html"});
+let a=document.createElement("a");a.href=URL.createObjectURL(blob);
+a.download="my-website.html";a.click();URL.revokeObjectURL(a.href);
+}
+function runJS(){
+let output=[];
+try{
+let log=(...v)=>output.push(v.map(x=>typeof x==="object"?JSON.stringify(x):String(x)).join(" "));
+let code=document.getElementById("jsCode").value;
+let frame=document.createElement("iframe");
+frame.sandbox="allow-scripts";
+frame.style.display="none";document.body.appendChild(frame);
+frame.onload=()=>{};
+let script=frame.contentDocument.createElement("script");
+script.textContent="console.log=function(...x){parent.postMessage({utpalOutput:x.map(String)} ,'*')};try{"+code+"}catch(e){console.log('ERROR: '+e.message)}";
+frame.contentDocument.body.appendChild(script);
+let handler=e=>{if(e.data&&e.data.utpalOutput){output.push(e.data.utpalOutput.join(" "));document.getElementById("jsOutput").textContent=output.join("\n")||"No output";window.removeEventListener("message",handler);frame.remove()}};
+window.addEventListener("message",handler);
+setTimeout(()=>{frame.remove();window.removeEventListener("message",handler)},2000);
+document.getElementById("jsOutput").textContent="Running...";
+}catch(e){document.getElementById("jsOutput").textContent=e.message}
+}
+function formatJSON(){
+try{let x=JSON.parse(document.getElementById("jsonInput").value);document.getElementById("jsonOutput").textContent=JSON.stringify(x,null,2)}
+catch(e){document.getElementById("jsonOutput").textContent="Invalid JSON: "+e.message}
+}
+function calculate(){
+try{
+let s=document.getElementById("expression").value.trim();
+if(!s||!/^[0-9+\-*/().%\s]+$/.test(s))throw Error("শুধু সংখ্যা ও গাণিতিক অপারেটর ব্যবহার করুন");
+let result=Function('"use strict";return ('+s+')')();
+document.getElementById("calcOutput").textContent=String(result);
+}catch(e){document.getElementById("calcOutput").textContent="Error: "+e.message}
+}
+function countWords(){
+let s=document.getElementById("wordText").value;
+let words=s.trim()?s.trim().split(/\s+/u).length:0;
+document.getElementById("wordOutput").textContent="শব্দ: "+words+" | অক্ষর: "+s.length;
+}
+preview();
+</script>
+</body>
+</html>
